@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PARTICIPANT
+  MENTOR
+  ADMIN
+}
+
+enum WorkshopFormat {
+  ONLINE
+  OFFLINE
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum WorkshopStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum EnrollmentStatus {
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+  REJECTED
+  ATTENDED
+  NO_SHOW
+}
+
+enum NotificationType {
+  ENROLLMENT_CONFIRMED
+  ENROLLMENT_WAITLISTED
+  WAITLIST_PROMOTED
+  ENROLLMENT_REJECTED
+  WORKSHOP_REMINDER
+  WORKSHOP_CANCELLED
+  WORKSHOP_UPDATED
+  WORKSHOP_APPROVED
+  WORKSHOP_REJECTED
+  NEW_ENROLLMENT
+  NEW_REVIEW
+  REVIEW_REQUEST
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  email        String  @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  avatarUrl    String?
+  bio          String?
+  university   String?
+  course       Int?
+  role         Role    @default(PARTICIPANT)
+  isBlocked    Boolean @default(false)
+
+  emailNotifications  Boolean @default(true)
+  reminderHoursBefore Int     @default(24)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mentorProfile MentorProfile?
+  enrollments   Enrollment[]
+  notifications Notification[]
+  skillProgress UserSkillProgress[]
+
+  @@index([role])
+}
+
+model MentorProfile {
+  id                Int              @id @default(autoincrement())
+  userId            Int              @unique
+  headline          String
+  experience        String
+  yearsOfExperience Int              @default(0)
+  formats           WorkshopFormat[]
+  telegram          String?
+
+  ratingAvg    Float @default(0)
+  reviewsCount Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills    MentorSkill[]
+  workshops Workshop[]
+
+  @@index([ratingAvg])
+}
+
+model SkillCategory {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  slug   String  @unique
+  icon   String?
+  skills Skill[]
+}
+
+model Skill {
+  id         Int    @id @default(autoincrement())
+  name       String @unique
+  slug       String @unique
+  categoryId Int
+
+  category  SkillCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  mentors   MentorSkill[]
+  workshops WorkshopSkill[]
+  progress  UserSkillProgress[]
+
+  @@index([categoryId])
+}
+
+model MentorSkill {
+  mentorId Int
+  skillId  Int
+  level    SkillLevel @default(INTERMEDIATE)
+
+  mentor MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  skill  Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([mentorId, skillId])
+  @@index([skillId])
+}
+
+model Workshop {
+  id               Int            @id @default(autoincrement())
+  mentorId         Int
+  title            String
+  slug             String         @unique
+  shortDescription String
+  description      String
+  requirements     String?
+  coverUrl         String?
+  format           WorkshopFormat
+  location         String?
+  meetingUrl       String?
+  level            SkillLevel     @default(BEGINNER)
+  startsAt         DateTime
+  durationMinutes  Int
+  capacity         Int
+  price            Int            @default(0)
+  status           WorkshopStatus @default(DRAFT)
+  rejectionReason  String?
+
+  ratingAvg    Float @default(0)
+  reviewsCount Int   @default(0)
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  mentor        MentorProfile         @relation(fields: [mentorId], references: [id], onDelete: Restrict)
+  programItems  WorkshopProgramItem[]
+  skills        WorkshopSkill[]
+  enrollments   Enrollment[]
+  notifications Notification[]
+
+  @@index([status, startsAt])
+  @@index([mentorId])
+  @@index([format])
+  @@index([price])
+}
+
+model WorkshopProgramItem {
+  id              Int     @id @default(autoincrement())
+  workshopId      Int
+  position        Int
+  title           String
+  description     String?
+  durationMinutes Int?
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@unique([workshopId, position])
+}
+
+model WorkshopSkill {
+  workshopId Int
+  skillId    Int
+  isPrimary  Boolean @default(false)
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([workshopId, skillId])
+  @@index([skillId])
+}
+
+model Enrollment {
+  id               Int              @id @default(autoincrement())
+  workshopId       Int
+  userId           Int
+  status           EnrollmentStatus
+  waitlistPosition Int?
+  comment          String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  attendedAt  DateTime?
+
+  workshop  Workshop   @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review    Review?
+  reminders Reminder[]
+
+  @@unique([workshopId, userId])
+  @@index([userId, status])
+  @@index([workshopId, status])
+}
+
+model Review {
+  id             Int     @id @default(autoincrement())
+  enrollmentId   Int     @unique
+  workshopRating Int
+  mentorRating   Int
+  comment        String?
+  mentorReply    String?
+  repliedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id         Int              @id @default(autoincrement())
+  userId     Int
+  type       NotificationType
+  title      String
+  body       String
+  workshopId Int?
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workshop Workshop? @relation(fields: [workshopId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model Reminder {
+  id           Int       @id @default(autoincrement())
+  enrollmentId Int
+  remindAt     DateTime
+  sentAt       DateTime?
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt, remindAt])
+}
+
+model UserSkillProgress {
+  userId             Int
+  skillId            Int
+  workshopsCompleted Int        @default(0)
+  minutesTotal       Int        @default(0)
+  level              SkillLevel @default(BEGINNER)
+  updatedAt          DateTime   @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([userId, skillId])
+}
