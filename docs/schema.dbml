@@ -1,0 +1,278 @@
+Project CampusSkill {
+  database_type: 'PostgreSQL'
+  Note: 'Платформа обмена навыками и воркшопов'
+}
+
+Enum Role {
+  PARTICIPANT
+  MENTOR
+  ADMIN
+}
+
+Enum WorkshopFormat {
+  ONLINE
+  OFFLINE
+}
+
+Enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+Enum WorkshopStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+Enum EnrollmentStatus {
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+  REJECTED
+  ATTENDED
+  NO_SHOW
+}
+
+Enum NotificationType {
+  ENROLLMENT_CONFIRMED
+  ENROLLMENT_WAITLISTED
+  WAITLIST_PROMOTED
+  ENROLLMENT_REJECTED
+  WORKSHOP_REMINDER
+  WORKSHOP_CANCELLED
+  WORKSHOP_UPDATED
+  WORKSHOP_APPROVED
+  WORKSHOP_REJECTED
+  NEW_ENROLLMENT
+  NEW_REVIEW
+  REVIEW_REQUEST
+}
+
+Table User [headercolor: #3B82F6] {
+  id int [pk, increment]
+  email varchar [unique, not null]
+  passwordHash varchar [not null]
+  firstName varchar [not null]
+  lastName varchar [not null]
+  avatarUrl varchar
+  bio varchar
+  university varchar
+  course int
+  role Role [not null, default: 'PARTICIPANT']
+  isBlocked boolean [not null, default: false]
+  emailNotifications boolean [not null, default: true]
+  reminderHoursBefore int [not null, default: 24]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  Note: 'Все пользователи. Роль: участник, ментор, администратор'
+}
+
+Table MentorProfile [headercolor: #3B82F6] {
+  id int [pk, increment]
+  userId int [unique, not null]
+  headline varchar [not null]
+  experience varchar [not null]
+  yearsOfExperience int [not null, default: 0]
+  formats "WorkshopFormat[]" [not null]
+  telegram varchar
+  ratingAvg float [not null, default: 0]
+  reviewsCount int [not null, default: 0]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  Note: 'Профиль ментора (1:1 с User). Рейтинг денормализован'
+}
+
+Table SkillCategory [headercolor: #10B981] {
+  id int [pk, increment]
+  name varchar [unique, not null]
+  slug varchar [unique, not null]
+  icon varchar
+  Note: 'Категории навыков: программирование, дизайн, языки, музыка, кулинария'
+}
+
+Table Skill [headercolor: #10B981] {
+  id int [pk, increment]
+  name varchar [unique, not null]
+  slug varchar [unique, not null]
+  categoryId int [not null]
+  Note: 'Навык = тег. Используется в фильтрах и рекомендациях'
+}
+
+Table MentorSkill [headercolor: #10B981] {
+  mentorId int [not null]
+  skillId int [not null]
+  level SkillLevel [not null, default: 'INTERMEDIATE']
+
+  indexes {
+    (mentorId, skillId) [pk]
+  }
+  Note: 'M:N ментор ↔ навык с уровнем владения'
+}
+
+Table Workshop [headercolor: #F59E0B] {
+  id int [pk, increment]
+  mentorId int [not null]
+  title varchar [not null]
+  slug varchar [unique, not null]
+  shortDescription varchar [not null]
+  description varchar [not null]
+  requirements varchar
+  coverUrl varchar
+  format WorkshopFormat [not null]
+  location varchar [note: 'для OFFLINE']
+  meetingUrl varchar [note: 'для ONLINE']
+  level SkillLevel [not null, default: 'BEGINNER']
+  startsAt timestamp [not null]
+  durationMinutes int [not null]
+  capacity int [not null, note: 'максимум участников']
+  price int [not null, default: 0, note: 'в рублях, 0 = бесплатно']
+  status WorkshopStatus [not null, default: 'DRAFT']
+  rejectionReason varchar
+  ratingAvg float [not null, default: 0]
+  reviewsCount int [not null, default: 0]
+  publishedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  Note: 'Воркшоп. price = 0 → бесплатный. Статус проходит модерацию'
+}
+
+Table WorkshopProgramItem [headercolor: #F59E0B] {
+  id int [pk, increment]
+  workshopId int [not null]
+  position int [not null]
+  title varchar [not null]
+  description varchar
+  durationMinutes int
+
+  indexes {
+    (workshopId, position) [unique]
+  }
+  Note: 'Пункты программы воркшопа по порядку'
+}
+
+Table WorkshopSkill [headercolor: #F59E0B] {
+  workshopId int [not null]
+  skillId int [not null]
+  isPrimary boolean [not null, default: false]
+
+  indexes {
+    (workshopId, skillId) [pk]
+  }
+  Note: 'M:N воркшоп ↔ навык (теги воркшопа)'
+}
+
+Table Enrollment [headercolor: #EF4444] {
+  id int [pk, increment]
+  workshopId int [not null]
+  userId int [not null]
+  status EnrollmentStatus [not null]
+  waitlistPosition int [note: 'только при WAITLISTED']
+  comment varchar
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  confirmedAt timestamp
+  cancelledAt timestamp
+  attendedAt timestamp
+
+  indexes {
+    (workshopId, userId) [unique]
+  }
+  Note: 'Запись на воркшоп. Лист ожидания = статус WAITLISTED'
+}
+
+Table Review [headercolor: #EF4444] {
+  id int [pk, increment]
+  enrollmentId int [unique, not null]
+  workshopRating int [not null, note: '1–5']
+  mentorRating int [not null, note: '1–5']
+  comment varchar
+  mentorReply varchar
+  repliedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  Note: 'Отзыв (1:1 с Enrollment): только участник, только один раз'
+}
+
+Table Notification [headercolor: #8B5CF6] {
+  id int [pk, increment]
+  userId int [not null]
+  type NotificationType [not null]
+  title varchar [not null]
+  body varchar [not null]
+  workshopId int
+  isRead boolean [not null, default: false]
+  createdAt timestamp [not null, default: `now()`]
+  Note: 'Уведомление в личном кабинете'
+}
+
+Table Reminder [headercolor: #EF4444] {
+  id int [pk, increment]
+  enrollmentId int [not null]
+  remindAt timestamp [not null]
+  sentAt timestamp [note: 'NULL = ещё не отправлено']
+  Note: 'Запланированное напоминание, отправляется по cron'
+}
+
+Table UserSkillProgress [headercolor: #10B981] {
+  userId int [not null]
+  skillId int [not null]
+  workshopsCompleted int [not null, default: 0]
+  minutesTotal int [not null, default: 0]
+  level SkillLevel [not null, default: 'BEGINNER']
+  updatedAt timestamp [not null]
+
+  indexes {
+    (userId, skillId) [pk]
+  }
+  Note: 'Прогресс участника по навыку, растёт при статусе ATTENDED'
+}
+
+Ref: MentorProfile.userId - User.id [delete: cascade]
+Ref: Skill.categoryId > SkillCategory.id [delete: restrict]
+Ref: MentorSkill.mentorId > MentorProfile.id [delete: cascade]
+Ref: MentorSkill.skillId > Skill.id [delete: cascade]
+Ref: Workshop.mentorId > MentorProfile.id [delete: restrict]
+Ref: WorkshopProgramItem.workshopId > Workshop.id [delete: cascade]
+Ref: WorkshopSkill.workshopId > Workshop.id [delete: cascade]
+Ref: WorkshopSkill.skillId > Skill.id [delete: cascade]
+Ref: Enrollment.workshopId > Workshop.id [delete: cascade]
+Ref: Enrollment.userId > User.id [delete: cascade]
+Ref: Review.enrollmentId - Enrollment.id [delete: cascade]
+Ref: Notification.userId > User.id [delete: cascade]
+Ref: Notification.workshopId > Workshop.id [delete: set null]
+Ref: Reminder.enrollmentId > Enrollment.id [delete: cascade]
+Ref: UserSkillProgress.userId > User.id [delete: cascade]
+Ref: UserSkillProgress.skillId > Skill.id [delete: cascade]
+
+TableGroup users {
+  User
+  MentorProfile
+}
+
+TableGroup skills {
+  SkillCategory
+  Skill
+  MentorSkill
+  UserSkillProgress
+}
+
+TableGroup workshops {
+  Workshop
+  WorkshopProgramItem
+  WorkshopSkill
+}
+
+TableGroup enrollments {
+  Enrollment
+  Review
+  Reminder
+}
+
+TableGroup notifications {
+  Notification
+}
