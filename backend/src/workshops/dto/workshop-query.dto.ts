@@ -12,7 +12,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { SkillLevel, WorkshopFormat } from '../generated/prisma/enums';
+import { SkillLevel, WorkshopFormat } from '../../generated/prisma/enums';
 
 export enum PriceFilter {
   FREE = 'free',
