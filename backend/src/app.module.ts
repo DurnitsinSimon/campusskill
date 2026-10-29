@@ -3,6 +3,8 @@ import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { WorkshopsModule } from './workshops/workshops.module';
+import { SkillsModule } from './skills/skills.module';
 
 
 @Module({
@@ -10,7 +12,9 @@ import { AuthModule } from './auth/auth.module';
     PrismaModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
-    AuthModule
+    AuthModule,
+    WorkshopsModule,
+    SkillsModule
   ],
   controllers: [AppController],
 })
