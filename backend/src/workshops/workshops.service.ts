@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/prisma/client';
 import { EnrollmentStatus, WorkshopStatus } from '../generated/prisma/enums';
-import { PriceFilter, WorkshopQueryDto, WorkshopSort } from './dto/workshop-query.dto';
+import {
+  PriceFilter,
+  WorkshopQueryDto,
+  WorkshopSort,
+} from './dto/workshop-query.dto';
 
 const listSelect = {
   id: true,
@@ -48,13 +52,25 @@ const listSelect = {
 
 type WorkshopListRow = Prisma.WorkshopGetPayload<{ select: typeof listSelect }>;
 
-const ORDER_BY: Record<WorkshopSort, Prisma.WorkshopOrderByWithRelationInput[]> = {
+const ORDER_BY: Record<
+  WorkshopSort,
+  Prisma.WorkshopOrderByWithRelationInput[]
+> = {
   [WorkshopSort.DATE]: [{ startsAt: 'asc' }],
   [WorkshopSort.RATING]: [{ ratingAvg: 'desc' }, { startsAt: 'asc' }],
   [WorkshopSort.PRICE_ASC]: [{ price: 'asc' }, { startsAt: 'asc' }],
   [WorkshopSort.PRICE_DESC]: [{ price: 'desc' }, { startsAt: 'asc' }],
-  [WorkshopSort.POPULAR]: [{ enrollments: { _count: 'desc' } }, { startsAt: 'asc' }],
+  [WorkshopSort.POPULAR]: [
+    { enrollments: { _count: 'desc' } },
+    { startsAt: 'asc' },
+  ],
 };
+
+const PUBLIC_STATUSES: WorkshopStatus[] = [
+  WorkshopStatus.PUBLISHED,
+  WorkshopStatus.COMPLETED,
+  WorkshopStatus.CANCELLED,
+];
 
 @Injectable()
 export class WorkshopsService {
@@ -84,7 +100,79 @@ export class WorkshopsService {
     };
   }
 
-  private async buildWhere(query: WorkshopQueryDto): Promise<Prisma.WorkshopWhereInput> {
+  async findBySlug(slug: string) {
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { slug },
+      select: {
+        ...listSelect,
+        description: true,
+        requirements: true,
+        mentor: {
+          select: {
+            ...listSelect.mentor.select,
+            experience: true,
+            yearsOfExperience: true,
+            reviewsCount: true,
+            telegram: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+                bio: true,
+              },
+            },
+          },
+        },
+        programItems: {
+          orderBy: { position: 'asc' },
+          select: {
+            position: true,
+            title: true,
+            description: true,
+            durationMinutes: true,
+          },
+        },
+      },
+    });
+
+    if (!workshop || !PUBLIC_STATUSES.includes(workshop.status)) {
+      throw new NotFoundException('Воркшоп не найден');
+    }
+
+    const [reviews, similar] = await Promise.all([
+      this.findReviews(workshop.id),
+      this.findSimilar(
+        workshop.id,
+        workshop.skills.map(({ skill }) => ({
+          slug: skill.slug,
+          categorySlug: skill.category.slug,
+        })),
+      ),
+    ]);
+
+    const listItem = toListItem(workshop);
+    return {
+      ...listItem,
+      description: workshop.description,
+      requirements: workshop.requirements,
+      programItems: workshop.programItems,
+      mentor: {
+        ...listItem.mentor,
+        experience: workshop.mentor.experience,
+        yearsOfExperience: workshop.mentor.yearsOfExperience,
+        reviewsCount: workshop.mentor.reviewsCount,
+        telegram: workshop.mentor.telegram,
+        bio: workshop.mentor.user.bio,
+      },
+      reviews,
+      similar,
+    };
+  }
+
+  private async buildWhere(
+    query: WorkshopQueryDto,
+  ): Promise<Prisma.WorkshopWhereInput> {
     const now = new Date();
     const from = query.dateFrom && query.dateFrom > now ? query.dateFrom : now;
     const and: Prisma.WorkshopWhereInput[] = [];
@@ -97,7 +185,11 @@ export class WorkshopsService {
           { shortDescription: contains },
           { description: contains },
           { skills: { some: { skill: { name: contains } } } },
-          { mentor: { user: { OR: [{ firstName: contains }, { lastName: contains }] } } },
+          {
+            mentor: {
+              user: { OR: [{ firstName: contains }, { lastName: contains }] },
+            },
+          },
         ],
       });
     }
@@ -105,7 +197,9 @@ export class WorkshopsService {
       and.push({ skills: { some: { skill: { slug: { in: query.skills } } } } });
     }
     if (query.category) {
-      and.push({ skills: { some: { skill: { category: { slug: query.category } } } } });
+      and.push({
+        skills: { some: { skill: { category: { slug: query.category } } } },
+      });
     }
     if (query.hasSeats) {
       and.push({ id: { in: await this.findIdsWithFreeSeats() } });
@@ -115,17 +209,22 @@ export class WorkshopsService {
       status: WorkshopStatus.PUBLISHED,
       startsAt: {
         gte: from,
-        ...(query.dateTo && { lt: new Date(query.dateTo.getTime() + 24 * 60 * 60 * 1000) }),
+        ...(query.dateTo && {
+          lt: new Date(query.dateTo.getTime() + 24 * 60 * 60 * 1000),
+        }),
       },
       format: query.format,
       level: query.level,
       price:
-        query.price === PriceFilter.FREE ? 0 : query.price === PriceFilter.PAID ? { gt: 0 } : undefined,
+        query.price === PriceFilter.FREE
+          ? 0
+          : query.price === PriceFilter.PAID
+            ? { gt: 0 }
+            : undefined,
       ratingAvg: query.minRating ? { gte: query.minRating } : undefined,
       AND: and,
     };
   }
-
 
   private async findIdsWithFreeSeats() {
     const rows = await this.prisma.$queryRaw<{ id: number }[]>`
@@ -137,6 +236,80 @@ export class WorkshopsService {
       )
     `;
     return rows.map((row) => row.id);
+  }
+  private async findReviews(workshopId: number) {
+    const reviews = await this.prisma.review.findMany({
+      where: { enrollment: { workshopId } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        workshopRating: true,
+        mentorRating: true,
+        comment: true,
+        mentorReply: true,
+        createdAt: true,
+        enrollment: {
+          select: {
+            user: {
+              select: { firstName: true, lastName: true, avatarUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    return reviews.map(({ enrollment, ...review }) => ({
+      ...review,
+      author: {
+        name: `${enrollment.user.firstName} ${enrollment.user.lastName.charAt(0)}.`,
+        avatarUrl: enrollment.user.avatarUrl,
+      },
+    }));
+  }
+
+ 
+  private async findSimilar(
+    workshopId: number,
+    skills: { slug: string; categorySlug: string }[],
+    limit = 4,
+  ) {
+    const skillSlugs = skills.map((item) => item.slug);
+    const categorySlugs = [...new Set(skills.map((item) => item.categorySlug))];
+
+    const candidates = await this.prisma.workshop.findMany({
+      where: {
+        id: { not: workshopId },
+        status: WorkshopStatus.PUBLISHED,
+        startsAt: { gte: new Date() },
+        skills: {
+          some: {
+            skill: {
+              OR: [
+                { slug: { in: skillSlugs } },
+                { category: { slug: { in: categorySlugs } } },
+              ],
+            },
+          },
+        },
+      },
+      select: listSelect,
+      take: 30,
+    });
+
+    const score = (row: WorkshopListRow) =>
+      row.skills.filter((item) => skillSlugs.includes(item.skill.slug)).length *
+        10 +
+      (row.skills.some((item) =>
+        categorySlugs.includes(item.skill.category.slug),
+      )
+        ? 1
+        : 0);
+
+    return candidates
+      .sort((a, b) => score(b) - score(a) || b.ratingAvg - a.ratingAvg)
+      .slice(0, limit)
+      .map(toListItem);
   }
 }
 
