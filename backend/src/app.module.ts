@@ -5,6 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { WorkshopsModule } from './workshops/workshops.module';
 import { SkillsModule } from './skills/skills.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
 
 
 @Module({
@@ -14,7 +16,9 @@ import { SkillsModule } from './skills/skills.module';
     PrismaModule,
     AuthModule,
     WorkshopsModule,
-    SkillsModule
+    SkillsModule,
+    NotificationsModule,
+    EnrollmentsModule
   ],
   controllers: [AppController],
 })
