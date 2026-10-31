@@ -7,6 +7,7 @@ import { WorkshopsModule } from './workshops/workshops.module';
 import { SkillsModule } from './skills/skills.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 
 @Module({
@@ -18,7 +19,8 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
     WorkshopsModule,
     SkillsModule,
     NotificationsModule,
-    EnrollmentsModule
+    EnrollmentsModule,
+    ReviewsModule
   ],
   controllers: [AppController],
 })
