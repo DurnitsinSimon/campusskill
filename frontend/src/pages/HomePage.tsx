@@ -1,18 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { useAuth } from '../hooks/useAuth';
 
 export function HomePage() {
-  const { data, isPending, isError } = useQuery({
-    queryKey: ['health'],
-    queryFn: () => api.get<{ status: string }>('/health').then((r) => r.data),
-  });
-
+  const { user } = useAuth();
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <h1 className="text-2xl font-bold">Каркас готов</h1>
-      <p className="mt-2 text-ink-600">
-        Бэкенд: {isPending ? 'проверяю…' : isError ? 'недоступен' : data?.status}
-      </p>
+      <h1 className="text-2xl font-bold">{user ? `Привет, ${user.firstName}!` : 'Каталог появится на следующем шаге'}</h1>
     </div>
   );
 }
