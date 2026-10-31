@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { WorkshopsModule } from './workshops/workshops.module';
 import { SkillsModule } from './skills/skills.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
 
 
 @Module({
@@ -16,7 +17,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     WorkshopsModule,
     SkillsModule,
-    NotificationsModule
+    NotificationsModule,
+    EnrollmentsModule
   ],
   controllers: [AppController],
 })
