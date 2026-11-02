@@ -130,3 +130,13 @@ export interface Enrollment {
     mentorName: string;
   };
 }
+
+export interface AppNotification {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
+  workshop: { slug: string; title: string } | null;
+}

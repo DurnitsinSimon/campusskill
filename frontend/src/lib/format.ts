@@ -36,3 +36,18 @@ export const levelLabels = {
 } as const;
 
 export const formatLabels = { ONLINE: 'Онлайн', OFFLINE: 'Офлайн' } as const;
+
+const relativeFormat = new Intl.RelativeTimeFormat('ru-RU', { numeric: 'auto' });
+
+export function formatRelative(iso: string) {
+  const diffSeconds = (new Date(iso).getTime() - Date.now()) / 1000;
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ];
+  for (const [unit, seconds] of units) {
+    if (Math.abs(diffSeconds) >= seconds) return relativeFormat.format(Math.round(diffSeconds / seconds), unit);
+  }
+  return 'только что';
+}

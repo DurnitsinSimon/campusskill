@@ -3,10 +3,10 @@ import { Layout } from "./components/layout/Layout";
 import { RequireAuth } from "./components/layout/RequireAuth";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { RegisterPage } from "./pages/auth/RegisterPage";
-import { ProfilePage } from "./pages/ProfilePage";
 import { CatalogPage } from "./pages/catalog/CatalogPage";
 import { WorkshopPage } from "./pages/workshop/WorkshopPage";
 import { EnrollmentSuccessPage } from "./pages/workshop/EnrollmentSuccessPage";
+import { ProfilePage } from './pages/profile/ProfilePage';
 
 export const router = createBrowserRouter([
   {
