@@ -79,3 +79,54 @@ export interface SkillCategory extends Category {
   id: number;
   skills: { id: number; name: string; slug: string; workshopsCount: number }[];
 }
+
+export interface WorkshopReview {
+  id: number;
+  workshopRating: number;
+  mentorRating: number;
+  comment: string | null;
+  mentorReply: string | null;
+  createdAt: string;
+  author: { name: string; avatarUrl: string | null };
+}
+
+export interface WorkshopDetails extends WorkshopListItem {
+  description: string;
+  requirements: string | null;
+  programItems: { position: number; title: string; description: string | null; durationMinutes: number | null }[];
+  mentor: WorkshopListItem['mentor'] & {
+    experience: string;
+    yearsOfExperience: number;
+    reviewsCount: number;
+    telegram: string | null;
+    bio: string | null;
+  };
+  reviews: WorkshopReview[];
+  similar: WorkshopListItem[];
+}
+
+export type EnrollmentStatus = 'CONFIRMED' | 'WAITLISTED' | 'CANCELLED' | 'REJECTED' | 'ATTENDED' | 'NO_SHOW';
+
+export interface Enrollment {
+  id: number;
+  status: EnrollmentStatus;
+  waitlistPosition: number | null;
+  comment: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  canReview: boolean;
+  review: { id: number; workshopRating: number } | null;
+  workshop: {
+    id: number;
+    slug: string;
+    title: string;
+    startsAt: string;
+    durationMinutes: number;
+    format: WorkshopFormat;
+    location: string | null;
+    meetingUrl: string | null;
+    status: WorkshopStatus;
+    mentorName: string;
+  };
+}
