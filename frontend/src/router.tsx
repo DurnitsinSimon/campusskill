@@ -5,6 +5,8 @@ import { LoginPage } from "./pages/auth/LoginPage";
 import { RegisterPage } from "./pages/auth/RegisterPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { CatalogPage } from "./pages/catalog/CatalogPage";
+import { WorkshopPage } from "./pages/workshop/WorkshopPage";
+import { EnrollmentSuccessPage } from "./pages/workshop/EnrollmentSuccessPage";
 
 export const router = createBrowserRouter([
   {
@@ -13,6 +15,15 @@ export const router = createBrowserRouter([
       { path: "/", element: <CatalogPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
+      { path: "/workshops/:slug", element: <WorkshopPage /> },
+      {
+        path: "/workshops/:slug/enrolled",
+        element: (
+          <RequireAuth>
+            <EnrollmentSuccessPage />
+          </RequireAuth>
+        ),
+      },
       {
         path: "/me",
         element: (
