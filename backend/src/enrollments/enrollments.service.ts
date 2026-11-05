@@ -15,7 +15,7 @@ import {
 } from '../generated/prisma/enums';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 
-interface LockedWorkshop {
+export interface LockedWorkshop {
   id: number;
   title: string;
   capacity: number;
@@ -282,7 +282,7 @@ export class EnrollmentsService {
     return toResponse(row);
   }
 
-  private async lockWorkshop(tx: Prisma.TransactionClient, workshopId: number) {
+  async lockWorkshop(tx: Prisma.TransactionClient, workshopId: number) {
     const [workshop] = await tx.$queryRaw<LockedWorkshop[]>`
       SELECT w.id, w.title, w.capacity, w.status, w."startsAt", m."userId" AS "mentorUserId"
       FROM "Workshop" w
@@ -305,7 +305,7 @@ export class EnrollmentsService {
     return _max.waitlistPosition ?? 0;
   }
 
-  private shiftWaitlist(
+  shiftWaitlist(
     tx: Prisma.TransactionClient,
     workshopId: number,
     afterPosition: number,
@@ -320,7 +320,7 @@ export class EnrollmentsService {
     });
   }
 
-  private async promoteFromWaitlist(
+  async promoteFromWaitlist(
     tx: Prisma.TransactionClient,
     workshop: LockedWorkshop,
   ) {

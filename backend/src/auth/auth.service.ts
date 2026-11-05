@@ -30,6 +30,10 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
+        mentorProfile:
+          dto.role === Role.MENTOR
+            ? { create: { headline: 'Ментор CampusSkill', experience: '' } }
+            : undefined,
         email,
         passwordHash: await hash(dto.password, 10),
         firstName: dto.firstName,
@@ -38,7 +42,7 @@ export class AuthService {
       },
       omit: { passwordHash: true },
     });
-    
+
     return { accessToken: this.sign(user.id, user.role), user };
   }
 

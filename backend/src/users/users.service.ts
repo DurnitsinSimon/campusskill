@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentStatus } from '../generated/prisma/enums';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateMentorProfileDto } from './dto/update-mentor-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -47,5 +48,19 @@ export class UsersService {
       },
       skills,
     };
+  }
+
+  async updateMentorProfile(userId: number, dto: UpdateMentorProfileDto) {
+    return this.prisma.mentorProfile.upsert({
+      where: { userId },
+      create: {
+        ...dto,
+        userId,
+        headline: dto.headline ?? 'Ментор CampusSkill',
+        experience: dto.experience ?? '',
+        formats: dto.formats ?? [],
+      },
+      update: dto,
+    });
   }
 }
