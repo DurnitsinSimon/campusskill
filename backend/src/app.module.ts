@@ -9,6 +9,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
+import { MentorModule } from './mentor/mentor.module';
 
 
 @Module({
@@ -22,7 +23,8 @@ import { UsersModule } from './users/users.module';
     NotificationsModule,
     EnrollmentsModule,
     ReviewsModule,
-    UsersModule
+    UsersModule,
+    MentorModule
   ],
   controllers: [AppController],
 })
