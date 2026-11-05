@@ -140,3 +140,16 @@ export interface AppNotification {
   createdAt: string;
   workshop: { slug: string; title: string } | null;
 }
+
+export interface SkillProgress {
+  workshopsCompleted: number;
+  minutesTotal: number;
+  level: SkillLevel;
+  updatedAt: string;
+  skill: { name: string; slug: string; category: Category };
+}
+
+export interface ProgressResponse {
+  summary: { workshopsAttended: number; minutesTotal: number; skillsCount: number; reviewsCount: number };
+  skills: SkillProgress[];
+}
