@@ -8,6 +8,7 @@ import { SkillsModule } from './skills/skills.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { UsersModule } from './users/users.module';
 
 
 @Module({
@@ -20,7 +21,8 @@ import { ReviewsModule } from './reviews/reviews.module';
     SkillsModule,
     NotificationsModule,
     EnrollmentsModule,
-    ReviewsModule
+    ReviewsModule,
+    UsersModule
   ],
   controllers: [AppController],
 })
