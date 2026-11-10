@@ -32,7 +32,13 @@ export class AuthService {
       data: {
         mentorProfile:
           dto.role === Role.MENTOR
-            ? { create: { headline: 'Ментор CampusSkill', experience: '' } }
+            ? {
+                create: {
+                  headline: 'Ментор CampusSkill',
+                  experience: '',
+                  formats: [],
+                },
+              }
             : undefined,
         email,
         passwordHash: await hash(dto.password, 10),
@@ -54,9 +60,8 @@ export class AuthService {
     if (!user || !(await compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Неверный email или пароль');
     }
-    if (user.isBlocked) {
-      throw new ForbiddenException('Аккаунт заблокирован');
-    }
+    if (user.isBlocked)
+      throw new ForbiddenException('Аккаунт заблокирован администратором');
 
     const { passwordHash: _, ...publicUser } = user;
     return { accessToken: this.sign(user.id, user.role), user: publicUser };

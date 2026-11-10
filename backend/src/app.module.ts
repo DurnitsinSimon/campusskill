@@ -10,6 +10,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
 import { MentorModule } from './mentor/mentor.module';
+import { AdminModule } from './admin/admin.module';
 
 
 @Module({
@@ -24,7 +25,8 @@ import { MentorModule } from './mentor/mentor.module';
     EnrollmentsModule,
     ReviewsModule,
     UsersModule,
-    MentorModule
+    MentorModule,
+    AdminModule
   ],
   controllers: [AppController],
 })

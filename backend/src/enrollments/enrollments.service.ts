@@ -294,6 +294,26 @@ export class EnrollmentsService {
     return workshop;
   }
 
+  async annulAll(tx: Prisma.TransactionClient, workshopId: number) {
+    const active = await tx.enrollment.findMany({
+      where: { workshopId, status: { in: ACTIVE_STATUSES } },
+      select: { id: true, userId: true },
+    });
+    const ids = active.map((e) => e.id);
+    await tx.enrollment.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status: EnrollmentStatus.CANCELLED,
+        cancelledAt: new Date(),
+        waitlistPosition: null,
+      },
+    });
+    await tx.reminder.deleteMany({
+      where: { enrollmentId: { in: ids }, sentAt: null },
+    });
+    return active.map((e) => e.userId);
+  }
+
   private async lastWaitlistPosition(
     tx: Prisma.TransactionClient,
     workshopId: number,
