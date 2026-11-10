@@ -2,6 +2,8 @@ import axios, { isAxiosError } from 'axios';
 
 export const TOKEN_KEY = 'campusskill_token';
 
+const BLOCKED_MESSAGE = 'Аккаунт заблокирован администратором';
+
 export const api = axios.create({ baseURL: '/api' });
 
 api.interceptors.request.use((config) => {
@@ -13,9 +15,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (isAxiosError(error) && error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      window.dispatchEvent(new Event('auth:logout'));
+    if (isAxiosError(error)) {
+      const status = error.response?.status;
+      const isBlocked = status === 403 && error.response?.data?.message === BLOCKED_MESSAGE;
+      if (status === 401 || isBlocked) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.dispatchEvent(new Event('auth:logout'));
+      }
     }
     return Promise.reject(error);
   },

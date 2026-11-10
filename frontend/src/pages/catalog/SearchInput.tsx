@@ -1,12 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Search, X } from "lucide-react";
 
 interface SearchInputProps {
   value: string;
   onSearch: (value: string) => void;
+  placeholder?: string;
 }
 
-export function SearchInput({ value, onSearch }: SearchInputProps) {
+export function SearchInput({
+  value,
+  onSearch,
+  placeholder = "Поиск: Figma, гитара, Мария Огнева…",
+}: SearchInputProps) {
   const [text, setText] = useState(value);
 
   useEffect(() => setText(value), [value]);
@@ -24,14 +29,14 @@ export function SearchInput({ value, onSearch }: SearchInputProps) {
         type="search"
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="Поиск: Figma, гитара, Мария Огнева…"
-        aria-label="Поиск воркшопов"
+        placeholder={placeholder}
+        aria-label={placeholder}
         className="h-12 w-full rounded-2xl border border-slate-300 bg-white pr-10 pl-11 text-sm font-medium placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
       />
       {text && (
         <button
           type="button"
-          onClick={() => setText('')}
+          onClick={() => setText("")}
           className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 text-ink-400 hover:bg-slate-100 hover:text-ink-900"
           aria-label="Очистить поиск"
         >
@@ -39,5 +44,5 @@ export function SearchInput({ value, onSearch }: SearchInputProps) {
         </button>
       )}
     </div>
-  )
+  );
 }
