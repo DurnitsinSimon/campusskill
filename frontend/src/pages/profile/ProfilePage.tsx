@@ -2,6 +2,8 @@ import { useSearchParams } from "react-router";
 import {
   Bell,
   CalendarDays,
+  MessageSquareText,
+  Presentation,
   Settings,
   TrendingUp,
   type LucideIcon,
@@ -9,12 +11,26 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { Avatar } from "../../components/ui/Avatar";
 import { cn } from "../../lib/cn";
+import { EnrollmentsTab } from "./EnrollmentsTab";
 import { ProgressTab } from "./ProgressTab";
 import { NotificationsTab } from "./NotificationsTab";
 import { SettingsTab } from "./SettingsTab";
-import { EnrollmentsTab } from "./EnrollmentsTab";
+import { MentorWorkshopsTab } from "../mentor/MentorWorkshopTab";
+import { MentorReviewsTab } from "../mentor/MentorReviewsTab";
 
-type TabId = "enrollments" | "progress" | "notifications" | "settings";
+type TabId =
+  | "workshops"
+  | "reviews"
+  | "enrollments"
+  | "progress"
+  | "notifications"
+  | "settings";
+
+// вкладки ментора; ментор тоже студент, поэтому остальные вкладки у него тоже есть
+const mentorTabs: { id: TabId; label: string; icon: LucideIcon }[] = [
+  { id: "workshops", label: "Мои воркшопы", icon: Presentation },
+  { id: "reviews", label: "Отзывы обо мне", icon: MessageSquareText },
+];
 
 const tabs: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: "enrollments", label: "Мои записи", icon: CalendarDays },
@@ -26,9 +42,12 @@ const tabs: { id: TabId; label: string; icon: LucideIcon }[] = [
 export function ProfilePage() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const active = (params.get("tab") as TabId) ?? "enrollments";
-
   if (!user) return null;
+
+  const isMentor = user.role === "MENTOR";
+  const visibleTabs = isMentor ? [...mentorTabs, ...tabs] : tabs;
+  const active =
+    (params.get("tab") as TabId) ?? (isMentor ? "workshops" : "enrollments");
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,12 +67,13 @@ export function ProfilePage() {
           </p>
         </div>
       </div>
+
       <nav
         className="-mx-4 overflow-x-auto px-4"
         aria-label="Разделы личного кабинета"
       >
         <div className="flex w-max gap-1 rounded-2xl bg-white p-1 ring-1 ring-slate-200">
-          {tabs.map(({ id, label, icon: Icon }) => (
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -72,10 +92,13 @@ export function ProfilePage() {
           ))}
         </div>
       </nav>
+
+      {active === "workshops" && isMentor && <MentorWorkshopsTab />}
+      {active === "reviews" && isMentor && <MentorReviewsTab />}
       {active === "enrollments" && <EnrollmentsTab />}
       {active === "progress" && <ProgressTab />}
       {active === "notifications" && <NotificationsTab />}
-      {active === "settings" && <SettingsTab user={user} />}{" "}
+      {active === "settings" && <SettingsTab user={user} />}
     </div>
   );
 }
