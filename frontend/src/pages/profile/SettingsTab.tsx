@@ -6,7 +6,6 @@ import type { User } from '../../api/types';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { Toggle } from '../../components/ui/Toggle';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 

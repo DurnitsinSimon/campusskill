@@ -13,8 +13,7 @@ export interface User {
   emailNotifications: boolean;
   reminderHoursBefore: number;
   createdAt: string;
-  mentorProfile?: { id: number; headline: string } | null;
-}
+  mentorProfile?: MentorProfile | null;}
 
 export interface AuthResponse {
   accessToken: string;
@@ -152,4 +151,94 @@ export interface SkillProgress {
 export interface ProgressResponse {
   summary: { workshopsAttended: number; minutesTotal: number; skillsCount: number; reviewsCount: number };
   skills: SkillProgress[];
+}
+
+export interface MentorWorkshop {
+  id: number;
+  slug: string;
+  title: string;
+  status: WorkshopStatus;
+  rejectionReason: string | null;
+  format: WorkshopFormat;
+  startsAt: string;
+  durationMinutes: number;
+  capacity: number;
+  price: number;
+  ratingAvg: number;
+  reviewsCount: number;
+  confirmedCount: number;
+  waitlistCount: number;
+  attendedCount: number;
+}
+
+export interface ProgramItemInput {
+  title: string;
+  description?: string;
+  durationMinutes?: number;
+}
+
+export interface WorkshopFormValues {
+  title: string;
+  shortDescription: string;
+  description: string;
+  requirements?: string;
+  format: WorkshopFormat;
+  location?: string;
+  meetingUrl?: string;
+  level: SkillLevel;
+  startsAt: string;
+  durationMinutes: number;
+  capacity: number;
+  price: number;
+  skills: string[];
+  program: ProgramItemInput[];
+}
+
+export interface MentorWorkshopDetails extends Omit<WorkshopFormValues, 'skills' | 'program'> {
+  id: number;
+  slug: string;
+  status: WorkshopStatus;
+  rejectionReason: string | null;
+  skills: { slug: string; name: string }[];
+  programItems: { position: number; title: string; description: string | null; durationMinutes: number | null }[];
+}
+
+export interface Participant {
+  id: number;
+  status: EnrollmentStatus;
+  waitlistPosition: number | null;
+  comment: string | null;
+  createdAt: string;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    university: string | null;
+    course: number | null;
+    avatarUrl: string | null;
+  };
+  review: { workshopRating: number } | null;
+}
+
+export interface MentorReview {
+  id: number;
+  workshopRating: number;
+  mentorRating: number;
+  comment: string | null;
+  mentorReply: string | null;
+  createdAt: string;
+  enrollment: {
+    user: { firstName: string; lastName: string; avatarUrl: string | null };
+    workshop: { title: string; slug: string };
+  };
+}
+
+export interface MentorProfile {
+  id: number;
+  headline: string;
+  experience: string;
+  yearsOfExperience: number;
+  formats: WorkshopFormat[];
+  telegram: string | null;
 }
