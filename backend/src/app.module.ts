@@ -11,12 +11,14 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
 import { MentorModule } from './mentor/mentor.module';
 import { AdminModule } from './admin/admin.module';
-
+import { TasksModule } from './tasks/tasks.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     PrismaModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     WorkshopsModule,
@@ -26,7 +28,8 @@ import { AdminModule } from './admin/admin.module';
     ReviewsModule,
     UsersModule,
     MentorModule,
-    AdminModule
+    AdminModule,
+    TasksModule,
   ],
   controllers: [AppController],
 })
