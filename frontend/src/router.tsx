@@ -6,7 +6,9 @@ import { RegisterPage } from "./pages/auth/RegisterPage";
 import { CatalogPage } from "./pages/catalog/CatalogPage";
 import { WorkshopPage } from "./pages/workshop/WorkshopPage";
 import { EnrollmentSuccessPage } from "./pages/workshop/EnrollmentSuccessPage";
-import { ProfilePage } from './pages/profile/ProfilePage';
+import { ProfilePage } from "./pages/profile/ProfilePage";
+import { WorkshopFormPage } from "./pages/mentor/WorkshopFormPage";
+import { ParticipantsPage } from "./pages/mentor/ParticipantsPage";
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +31,30 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <ProfilePage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/mentor/workshops/new",
+        element: (
+          <RequireAuth roles={["MENTOR"]}>
+            <WorkshopFormPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/mentor/workshops/:id/edit",
+        element: (
+          <RequireAuth roles={["MENTOR"]}>
+            <WorkshopFormPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/mentor/workshops/:id/participants",
+        element: (
+          <RequireAuth roles={["MENTOR"]}>
+            <ParticipantsPage />
           </RequireAuth>
         ),
       },
