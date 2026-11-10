@@ -9,6 +9,7 @@ import { EnrollmentSuccessPage } from "./pages/workshop/EnrollmentSuccessPage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { WorkshopFormPage } from "./pages/mentor/WorkshopFormPage";
 import { ParticipantsPage } from "./pages/mentor/ParticipantsPage";
+import { AdminPage } from "./pages/admin/AdminPage";
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +56,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth roles={["MENTOR"]}>
             <ParticipantsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/admin",
+        element: (
+          <RequireAuth roles={["ADMIN"]}>
+            <AdminPage />
           </RequireAuth>
         ),
       },

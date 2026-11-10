@@ -1,4 +1,4 @@
-export type Role = 'PARTICIPANT' | 'MENTOR' | 'ADMIN';
+export type Role = "PARTICIPANT" | "MENTOR" | "ADMIN";
 
 export interface User {
   id: number;
@@ -13,16 +13,23 @@ export interface User {
   emailNotifications: boolean;
   reminderHoursBefore: number;
   createdAt: string;
-  mentorProfile?: MentorProfile | null;}
+  mentorProfile?: MentorProfile | null;
+}
 
 export interface AuthResponse {
   accessToken: string;
   user: User;
 }
 
-export type WorkshopFormat = 'ONLINE' | 'OFFLINE';
-export type SkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-export type WorkshopStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
+export type WorkshopFormat = "ONLINE" | "OFFLINE";
+export type SkillLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+export type WorkshopStatus =
+  | "DRAFT"
+  | "PENDING_REVIEW"
+  | "PUBLISHED"
+  | "REJECTED"
+  | "COMPLETED"
+  | "CANCELLED";
 
 export interface Category {
   name: string;
@@ -92,8 +99,13 @@ export interface WorkshopReview {
 export interface WorkshopDetails extends WorkshopListItem {
   description: string;
   requirements: string | null;
-  programItems: { position: number; title: string; description: string | null; durationMinutes: number | null }[];
-  mentor: WorkshopListItem['mentor'] & {
+  programItems: {
+    position: number;
+    title: string;
+    description: string | null;
+    durationMinutes: number | null;
+  }[];
+  mentor: WorkshopListItem["mentor"] & {
     experience: string;
     yearsOfExperience: number;
     reviewsCount: number;
@@ -104,7 +116,13 @@ export interface WorkshopDetails extends WorkshopListItem {
   similar: WorkshopListItem[];
 }
 
-export type EnrollmentStatus = 'CONFIRMED' | 'WAITLISTED' | 'CANCELLED' | 'REJECTED' | 'ATTENDED' | 'NO_SHOW';
+export type EnrollmentStatus =
+  | "CONFIRMED"
+  | "WAITLISTED"
+  | "CANCELLED"
+  | "REJECTED"
+  | "ATTENDED"
+  | "NO_SHOW";
 
 export interface Enrollment {
   id: number;
@@ -149,7 +167,12 @@ export interface SkillProgress {
 }
 
 export interface ProgressResponse {
-  summary: { workshopsAttended: number; minutesTotal: number; skillsCount: number; reviewsCount: number };
+  summary: {
+    workshopsAttended: number;
+    minutesTotal: number;
+    skillsCount: number;
+    reviewsCount: number;
+  };
   skills: SkillProgress[];
 }
 
@@ -194,13 +217,21 @@ export interface WorkshopFormValues {
   program: ProgramItemInput[];
 }
 
-export interface MentorWorkshopDetails extends Omit<WorkshopFormValues, 'skills' | 'program'> {
+export interface MentorWorkshopDetails extends Omit<
+  WorkshopFormValues,
+  "skills" | "program"
+> {
   id: number;
   slug: string;
   status: WorkshopStatus;
   rejectionReason: string | null;
   skills: { slug: string; name: string }[];
-  programItems: { position: number; title: string; description: string | null; durationMinutes: number | null }[];
+  programItems: {
+    position: number;
+    title: string;
+    description: string | null;
+    durationMinutes: number | null;
+  }[];
 }
 
 export interface Participant {
@@ -241,4 +272,73 @@ export interface MentorProfile {
   yearsOfExperience: number;
   formats: WorkshopFormat[];
   telegram: string | null;
+}
+
+export interface AdminStats {
+  usersByRole: Partial<Record<Role, number>>;
+  blockedUsers: number;
+  workshopsByStatus: Partial<Record<WorkshopStatus, number>>;
+  enrollmentsLast30Days: number;
+  attendanceRate: number | null;
+  reviews: { count: number; avgRating: number };
+}
+
+export interface AdminWorkshop {
+  id: number;
+  slug: string;
+  title: string;
+  shortDescription: string;
+  description: string;
+  requirements: string | null;
+  format: WorkshopFormat;
+  location: string | null;
+  meetingUrl: string | null;
+  level: SkillLevel;
+  startsAt: string;
+  durationMinutes: number;
+  capacity: number;
+  price: number;
+  status: WorkshopStatus;
+  rejectionReason: string | null;
+  publishedAt: string | null;
+  seatsTaken: number;
+  isFirstWorkshop: boolean;
+  mentor: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    isBlocked: boolean;
+    headline: string;
+    ratingAvg: number;
+    reviewsCount: number;
+  };
+  skills: { name: string; slug: string; isPrimary: boolean }[];
+  programItems: {
+    position: number;
+    title: string;
+    durationMinutes: number | null;
+  }[];
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  university: string | null;
+  role: Role;
+  isBlocked: boolean;
+  createdAt: string;
+  enrollmentsCount: number;
+  workshopsCount: number;
+  mentorRating: number | null;
+}
+
+export interface BlockResult {
+  id: number;
+  isBlocked: boolean;
+  cancelledEnrollments?: number;
+  cancelledWorkshops?: number;
 }
