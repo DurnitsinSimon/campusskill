@@ -1,98 +1,74 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CampusSkill — бэкенд
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST API на NestJS 12 + Prisma 7 + PostgreSQL 16. Все маршруты под префиксом `/api`, документация — Swagger.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Запуск
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Нужны Node.js 22+ и Docker.
 
 ```bash
-$ npm install
+docker compose up -d          # PostgreSQL 16
+npm install
+cp .env.example .env
+npx prisma migrate deploy     # применить миграции
+npx prisma generate           # сгенерировать клиент в src/generated/prisma
+npx prisma db seed            # демо-данные
+npm run start:dev
 ```
 
-## Compile and run the project
+- API: http://localhost:3000/api
+- Swagger: http://localhost:3000/api/docs
 
-```bash
-# development
-$ npm run start
+### Переменные окружения
 
-# watch mode
-$ npm run start:dev
+| Переменная | Пример | Назначение |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/campusskill` | подключение к PostgreSQL |
+| `JWT_SECRET` | любая длинная случайная строка | подпись токенов |
+| `PORT` | `3000` | порт API |
 
-# production mode
-$ npm run start:prod
-```
+### Полезные команды
 
-## Run tests
+| Команда | Что делает |
+|---|---|
+| `npx prisma db seed` | пересоздать демо-данные (таблицы очищаются, даты считаются от текущего момента) |
+| `npx prisma migrate reset` + `npx prisma db seed` | пересоздать базу с нуля |
+| `npx prisma studio` | просмотр и правка данных в браузере |
+| `npm run build` | сборка в `dist` |
 
-```bash
-# unit tests
-$ npm run test
+## База данных
 
-# e2e tests
-$ npm run test:e2e
+13 сущностей: `User`, `MentorProfile`, `SkillCategory`, `Skill`, `MentorSkill`, `Workshop`, `WorkshopProgramItem`, `WorkshopSkill`, `Enrollment`, `Review`, `Notification`, `Reminder`, `UserSkillProgress`.
 
-# test coverage
-$ npm run test:cov
-```
+Диаграмма — [docs/db-schema.png](../docs/db-schema.png).
 
-## Deployment
+Seed создаёт 37 пользователей (участники, 11 менторов, администратор), 23 воркшопа во всех статусах, 162 записи и 35 отзывов. Даты считаются от момента запуска, поэтому предстоящие воркшопы всегда в будущем.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Модули
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Модуль | Маршруты | Что делает |
+|---|---|---|
+| `auth` | `/auth/register`, `/auth/login`, `/auth/me` | регистрация, вход, JWT; гард сверяет роль и блокировку с БД на каждом запросе |
+| `workshops` | `GET /workshops`, `GET /workshops/:slug` | каталог: поиск, 9 фильтров, 5 сортировок, пагинация; карточка с программой, отзывами и похожими |
+| `skills` | `GET /skills/categories` | категории и навыки для фильтров |
+| `enrollments` | `/enrollments` | запись, отмена, мои записи; лист ожидания с автоматическим продвижением |
+| `reviews` | `POST /reviews` | отзыв после посещения, пересчёт рейтингов воркшопа и ментора |
+| `notifications` | `/notifications` | список, прочитать одно / все |
+| `users` | `/users/me`, `/users/me/progress`, `/users/me/mentor-profile` | профиль, прогресс по навыкам, профиль ментора |
+| `mentor` | `/mentor/workshops`, `/mentor/reviews` | создание и редактирование воркшопов, отправка на модерацию, отмена, участники и посещаемость, ответы на отзывы |
+| `admin` | `/admin/stats`, `/admin/workshops`, `/admin/users` | модерация, снятие с публикации, статистика, блокировка и смена роли |
+| `tasks` | — | фоновые задачи: напоминания раз в минуту, завершение прошедших воркшопов раз в 10 минут |
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+## Жизненный цикл
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**Воркшоп:** `DRAFT` → `PENDING_REVIEW` → `PUBLISHED` → `COMPLETED`; с модерации можно вернуться в `REJECTED` (ментор исправляет и отправляет снова), опубликованный можно перевести в `CANCELLED`.
 
-## Resources
+**Запись:** `CONFIRMED` или `WAITLISTED` → `ATTENDED` / `NO_SHOW` после начала; до начала — `CANCELLED` (участник) или `REJECTED` (ментор).
 
-Check out a few resources that may come in handy when working with NestJS:
+## Технические решения
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- **Гонки за последнее место.** Запись, отмена, модерация и пересчёт рейтинга выполняются в транзакции с блокировкой строки воркшопа (`SELECT … FOR UPDATE`). Проверено 21 параллельным запросом на воркшоп с одним местом: подтверждена ровно одна запись, остальные встали в очередь по порядку.
+- **Лист ожидания.** Освободившееся место автоматически получает первый в очереди, остальные сдвигаются; оба получают уведомление.
+- **Права.** Роли проверяются через `RolesGuard`; чужие записи и воркшопы недоступны (404 вместо 403, чтобы не раскрывать их существование). Блокировка и смена роли действуют сразу, без повторного входа.
+- **Приватность.** Ссылку на онлайн-встречу видит только подтверждённый участник; в отзывах фамилия автора сокращается.
+- **Фоновые задачи** защищены от двойного выполнения: напоминание «захватывается» атомарным `UPDATE … WHERE sentAt IS NULL`.

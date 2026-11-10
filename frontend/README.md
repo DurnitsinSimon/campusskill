@@ -1,32 +1,50 @@
-# React + TypeScript + Vite
+# CampusSkill — фронтенд
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite + TypeScript + Tailwind CSS 4. Адаптивная вёрстка: десктоп и мобильная версия.
 
-Currently, two official plugins are available:
+## Запуск
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Сначала запустите бэкенд (см. [backend/README.md](../backend/README.md)).
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev       # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Vite проксирует запросы `/api` на `http://localhost:3000`, поэтому фронт и API работают на одном адресе и CORS не нужен.
+
+| Команда | Что делает |
+|---|---|
+| `npm run dev` | dev-сервер |
+| `npm run build` | проверка типов и сборка в `dist` |
+| `npm run preview` | просмотр собранной версии |
+
+## Страницы
+
+| Адрес | Кому | Что там |
+|---|---|---|
+| `/` | всем | каталог: поиск, фильтры по категории, навыкам, формату, уровню, цене, датам, рейтингу и свободным местам; сортировка, пагинация |
+| `/workshops/:slug` | всем | карточка: программа, ментор, отзывы, похожие, запись или лист ожидания |
+| `/login`, `/register` | гостям | вход и регистрация (участник или ментор) |
+| `/me` | авторизованным | личный кабинет: записи, прогресс, уведомления, настройки; у ментора — «Мои воркшопы» и «Отзывы обо мне» |
+| `/mentor/workshops/new`, `/:id/edit` | ментору | создание и редактирование воркшопа |
+| `/mentor/workshops/:id/participants` | ментору | участники, отклонение заявок, отметка посещения |
+| `/admin` | администратору | модерация, статистика, пользователи |
+
+## Устройство
+
+```
+src/
+  api/          axios-клиент с токеном и типизированные запросы к каждому модулю API
+  hooks/        useAuth (текущий пользователь), useCatalogFilters (фильтры в URL)
+  components/
+    ui/         Button, Input, Select, Modal, Badge, Chip, Pagination, Rating…
+    layout/     шапка, меню пользователя, колокольчик уведомлений, защита маршрутов
+    workshops/  карточка воркшопа, обложка, отзыв, бейджи статусов
+  pages/        catalog, workshop, auth, profile, mentor, admin
+  lib/          форматирование дат, цен, склонений
+```
+
+- **Данные с сервера** — TanStack Query: кэш, повторное использование между страницами, обновление после изменений (`invalidateQueries`), опрос уведомлений раз в минуту.
+- **Фильтры каталога** хранятся в адресной строке — ссылкой с фильтрами можно поделиться, кнопка «Назад» работает.
+- **Доступ по ролям** — компонент `RequireAuth` не пускает на чужие страницы; при истёкшем токене или блокировке пользователь автоматически выходит.
