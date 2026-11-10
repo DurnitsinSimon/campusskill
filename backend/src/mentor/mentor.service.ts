@@ -20,12 +20,22 @@ import { slugify } from '../common/slugify';
 import { CreateWorkshopDto, UpdateWorkshopDto } from './dto/workshop-form.dto';
 import { ParticipantActionDto } from './dto/participant-action.dto';
 
-const EDITABLE: WorkshopStatus[] = [WorkshopStatus.DRAFT, WorkshopStatus.REJECTED];
+const EDITABLE: WorkshopStatus[] = [
+  WorkshopStatus.DRAFT,
+  WorkshopStatus.REJECTED,
+];
 
-const ACTIVE: EnrollmentStatus[] = [EnrollmentStatus.CONFIRMED, EnrollmentStatus.WAITLISTED];
+const ACTIVE: EnrollmentStatus[] = [
+  EnrollmentStatus.CONFIRMED,
+  EnrollmentStatus.WAITLISTED,
+];
 
 const levelFor = (count: number) =>
-  count >= 3 ? SkillLevel.ADVANCED : count === 2 ? SkillLevel.INTERMEDIATE : SkillLevel.BEGINNER;
+  count >= 3
+    ? SkillLevel.ADVANCED
+    : count === 2
+      ? SkillLevel.INTERMEDIATE
+      : SkillLevel.BEGINNER;
 
 @Injectable()
 export class MentorService {
@@ -34,7 +44,6 @@ export class MentorService {
     private readonly notifications: NotificationsService,
     private readonly enrollments: EnrollmentsService,
   ) {}
-
 
   async findMine(userId: number) {
     const mentorId = await this.getMentorId(userId);
@@ -63,11 +72,14 @@ export class MentorService {
       _count: true,
     });
     const countOf = (workshopId: number, status: EnrollmentStatus) =>
-      counts.find((c) => c.workshopId === workshopId && c.status === status)?._count ?? 0;
+      counts.find((c) => c.workshopId === workshopId && c.status === status)
+        ?._count ?? 0;
 
     return workshops.map((workshop) => ({
       ...workshop,
-      confirmedCount: countOf(workshop.id, EnrollmentStatus.CONFIRMED) + countOf(workshop.id, EnrollmentStatus.ATTENDED),
+      confirmedCount:
+        countOf(workshop.id, EnrollmentStatus.CONFIRMED) +
+        countOf(workshop.id, EnrollmentStatus.ATTENDED),
       waitlistCount: countOf(workshop.id, EnrollmentStatus.WAITLISTED),
       attendedCount: countOf(workshop.id, EnrollmentStatus.ATTENDED),
     }));
@@ -79,7 +91,10 @@ export class MentorService {
       where: { id: workshop.id },
       include: {
         programItems: { orderBy: { position: 'asc' } },
-        skills: { orderBy: { isPrimary: 'desc' }, include: { skill: { select: { slug: true, name: true } } } },
+        skills: {
+          orderBy: { isPrimary: 'desc' },
+          include: { skill: { select: { slug: true, name: true } } },
+        },
       },
     });
     return {
@@ -110,8 +125,15 @@ export class MentorService {
         capacity: dto.capacity,
         price: dto.price,
         status: WorkshopStatus.DRAFT,
-        programItems: { create: dto.program.map((item, i) => ({ ...item, position: i + 1 })) },
-        skills: { create: skillIds.map((skillId, i) => ({ skillId, isPrimary: i === 0 })) },
+        programItems: {
+          create: dto.program.map((item, i) => ({ ...item, position: i + 1 })),
+        },
+        skills: {
+          create: skillIds.map((skillId, i) => ({
+            skillId,
+            isPrimary: i === 0,
+          })),
+        },
       },
       select: { id: true, slug: true, status: true },
     });
@@ -120,23 +142,35 @@ export class MentorService {
   async update(userId: number, workshopId: number, dto: UpdateWorkshopDto) {
     const workshop = await this.getOwnWorkshop(userId, workshopId);
     if (!EDITABLE.includes(workshop.status)) {
-      throw new BadRequestException('Редактировать можно только черновик или отклонённый воркшоп');
+      throw new BadRequestException(
+        'Редактировать можно только черновик или отклонённый воркшоп',
+      );
     }
     if (dto.startsAt) this.assertFuture(dto.startsAt);
-    const skillIds = dto.skills ? await this.resolveSkills(dto.skills) : undefined;
+    const skillIds = dto.skills
+      ? await this.resolveSkills(dto.skills)
+      : undefined;
     const { skills: _skills, program, ...fields } = dto;
 
     return this.prisma.$transaction(async (tx) => {
       if (program) {
         await tx.workshopProgramItem.deleteMany({ where: { workshopId } });
         await tx.workshopProgramItem.createMany({
-          data: program.map((item, i) => ({ ...item, position: i + 1, workshopId })),
+          data: program.map((item, i) => ({
+            ...item,
+            position: i + 1,
+            workshopId,
+          })),
         });
       }
       if (skillIds) {
         await tx.workshopSkill.deleteMany({ where: { workshopId } });
         await tx.workshopSkill.createMany({
-          data: skillIds.map((skillId, i) => ({ workshopId, skillId, isPrimary: i === 0 })),
+          data: skillIds.map((skillId, i) => ({
+            workshopId,
+            skillId,
+            isPrimary: i === 0,
+          })),
         });
       }
       return tx.workshop.update({
@@ -150,14 +184,20 @@ export class MentorService {
   async submit(userId: number, workshopId: number) {
     const workshop = await this.getOwnWorkshop(userId, workshopId);
     if (!EDITABLE.includes(workshop.status)) {
-      throw new BadRequestException('Отправить на модерацию можно только черновик или отклонённый воркшоп');
+      throw new BadRequestException(
+        'Отправить на модерацию можно только черновик или отклонённый воркшоп',
+      );
     }
     this.assertFuture(workshop.startsAt);
     if (workshop.format === 'OFFLINE' && !workshop.location) {
-      throw new BadRequestException('Для офлайн-воркшопа укажите место проведения');
+      throw new BadRequestException(
+        'Для офлайн-воркшопа укажите место проведения',
+      );
     }
     if (workshop.format === 'ONLINE' && !workshop.meetingUrl) {
-      throw new BadRequestException('Для онлайн-воркшопа укажите ссылку на встречу');
+      throw new BadRequestException(
+        'Для онлайн-воркшопа укажите ссылку на встречу',
+      );
     }
 
     const updated = await this.prisma.workshop.update({
@@ -166,7 +206,10 @@ export class MentorService {
       select: { id: true, slug: true, status: true },
     });
 
-    const admins = await this.prisma.user.findMany({ where: { role: Role.ADMIN }, select: { id: true } });
+    const admins = await this.prisma.user.findMany({
+      where: { role: Role.ADMIN },
+      select: { id: true },
+    });
     await this.prisma.notification.createMany({
       data: admins.map((admin) => ({
         userId: admin.id,
@@ -185,26 +228,23 @@ export class MentorService {
     await this.prisma.$transaction(async (tx) => {
       const workshop = await this.enrollments.lockWorkshop(tx, own.id);
       if (workshop.status !== WorkshopStatus.PUBLISHED) {
-        throw new BadRequestException('Отменить можно только опубликованный воркшоп');
+        throw new BadRequestException(
+          'Отменить можно только опубликованный воркшоп',
+        );
       }
       if (workshop.startsAt <= new Date()) {
         throw new BadRequestException('Воркшоп уже начался');
       }
 
-      const active = await tx.enrollment.findMany({
-        where: { workshopId, status: { in: ACTIVE } },
-        select: { id: true, userId: true },
+      const userIds = await this.enrollments.annulAll(tx, workshop.id);
+      await tx.workshop.update({
+        where: { id: workshop.id },
+        data: { status: WorkshopStatus.CANCELLED },
       });
-      await tx.enrollment.updateMany({
-        where: { id: { in: active.map((e) => e.id) } },
-        data: { status: EnrollmentStatus.CANCELLED, cancelledAt: new Date(), waitlistPosition: null },
-      });
-      await tx.reminder.deleteMany({ where: { enrollmentId: { in: active.map((e) => e.id) }, sentAt: null } });
-      await tx.workshop.update({ where: { id: workshopId }, data: { status: WorkshopStatus.CANCELLED } });
       await tx.notification.createMany({
-        data: active.map((e) => ({
-          userId: e.userId,
-          workshopId,
+        data: userIds.map((id) => ({
+          userId: id,
+          workshopId: workshop.id,
           type: NotificationType.WORKSHOP_CANCELLED,
           title: 'Воркшоп отменён',
           body: `Ментор отменил «${workshop.title}». Ваша запись аннулирована.`,
@@ -215,32 +255,57 @@ export class MentorService {
     return { id: workshopId, status: WorkshopStatus.CANCELLED };
   }
 
-
   async participants(userId: number, workshopId: number) {
     await this.getOwnWorkshop(userId, workshopId);
     return this.prisma.enrollment.findMany({
       where: { workshopId },
-      orderBy: [{ status: 'asc' }, { waitlistPosition: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [
+        { status: 'asc' },
+        { waitlistPosition: 'asc' },
+        { createdAt: 'asc' },
+      ],
       select: {
         id: true,
         status: true,
         waitlistPosition: true,
         comment: true,
         createdAt: true,
-        user: { select: { id: true, firstName: true, lastName: true, email: true, university: true, course: true, avatarUrl: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            university: true,
+            course: true,
+            avatarUrl: true,
+          },
+        },
         review: { select: { workshopRating: true } },
       },
     });
   }
 
-  async updateParticipant(userId: number, workshopId: number, enrollmentId: number, { status }: ParticipantActionDto) {
+  async updateParticipant(
+    userId: number,
+    workshopId: number,
+    enrollmentId: number,
+    { status }: ParticipantActionDto,
+  ) {
     await this.getOwnWorkshop(userId, workshopId);
 
     return this.prisma.$transaction(async (tx) => {
       const workshop = await this.enrollments.lockWorkshop(tx, workshopId);
       const enrollment = await tx.enrollment.findFirst({
         where: { id: enrollmentId, workshopId },
-        include: { workshop: { select: { durationMinutes: true, skills: { select: { skillId: true } } } } },
+        include: {
+          workshop: {
+            select: {
+              durationMinutes: true,
+              skills: { select: { skillId: true } },
+            },
+          },
+        },
       });
       if (!enrollment) throw new NotFoundException('Участник не найден');
 
@@ -248,8 +313,12 @@ export class MentorService {
       const quoted = `«${workshop.title}»`;
 
       if (status === EnrollmentStatus.REJECTED) {
-        if (hasStarted) throw new BadRequestException('После начала воркшопа заявку нельзя отклонить');
-        if (!ACTIVE.includes(enrollment.status)) throw new BadRequestException('Эту запись нельзя отклонить');
+        if (hasStarted)
+          throw new BadRequestException(
+            'После начала воркшопа заявку нельзя отклонить',
+          );
+        if (!ACTIVE.includes(enrollment.status))
+          throw new BadRequestException('Эту запись нельзя отклонить');
 
         await tx.enrollment.update({
           where: { id: enrollmentId },
@@ -257,7 +326,11 @@ export class MentorService {
         });
         await tx.reminder.deleteMany({ where: { enrollmentId, sentAt: null } });
         if (enrollment.status === EnrollmentStatus.WAITLISTED) {
-          await this.enrollments.shiftWaitlist(tx, workshopId, enrollment.waitlistPosition!);
+          await this.enrollments.shiftWaitlist(
+            tx,
+            workshopId,
+            enrollment.waitlistPosition!,
+          );
         } else {
           await this.enrollments.promoteFromWaitlist(tx, workshop);
         }
@@ -274,17 +347,28 @@ export class MentorService {
         return { id: enrollmentId, status };
       }
 
-      if (!hasStarted) throw new BadRequestException('Посещение можно отметить после начала воркшопа');
+      if (!hasStarted)
+        throw new BadRequestException(
+          'Посещение можно отметить после начала воркшопа',
+        );
       if (enrollment.status === EnrollmentStatus.ATTENDED) {
         throw new ConflictException('Посещение уже отмечено');
       }
-      if (enrollment.status !== EnrollmentStatus.CONFIRMED && enrollment.status !== EnrollmentStatus.NO_SHOW) {
-        throw new BadRequestException('Отметить можно только подтверждённого участника');
+      if (
+        enrollment.status !== EnrollmentStatus.CONFIRMED &&
+        enrollment.status !== EnrollmentStatus.NO_SHOW
+      ) {
+        throw new BadRequestException(
+          'Отметить можно только подтверждённого участника',
+        );
       }
 
       await tx.enrollment.update({
         where: { id: enrollmentId },
-        data: { status, attendedAt: status === EnrollmentStatus.ATTENDED ? new Date() : null },
+        data: {
+          status,
+          attendedAt: status === EnrollmentStatus.ATTENDED ? new Date() : null,
+        },
       });
 
       if (status === EnrollmentStatus.ATTENDED) {
@@ -303,7 +387,6 @@ export class MentorService {
       return { id: enrollmentId, status };
     });
   }
-
 
   async replyToReview(userId: number, reviewId: number, reply: string) {
     const review = await this.prisma.review.findFirst({
@@ -332,7 +415,9 @@ export class MentorService {
         createdAt: true,
         enrollment: {
           select: {
-            user: { select: { firstName: true, lastName: true, avatarUrl: true } },
+            user: {
+              select: { firstName: true, lastName: true, avatarUrl: true },
+            },
             workshop: { select: { title: true, slug: true } },
           },
         },
@@ -340,10 +425,13 @@ export class MentorService {
     });
   }
 
-
   private async getMentorId(userId: number) {
-    const profile = await this.prisma.mentorProfile.findUnique({ where: { userId }, select: { id: true } });
-    if (!profile) throw new ForbiddenException('Сначала заполните профиль ментора');
+    const profile = await this.prisma.mentorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile)
+      throw new ForbiddenException('Сначала заполните профиль ментора');
     return profile.id;
   }
 
@@ -357,21 +445,34 @@ export class MentorService {
 
   private assertFuture(date: Date) {
     if (date.getTime() < Date.now() + 60 * 60 * 1000) {
-      throw new BadRequestException('Дата начала должна быть хотя бы через час');
+      throw new BadRequestException(
+        'Дата начала должна быть хотя бы через час',
+      );
     }
   }
 
   private async resolveSkills(slugs: string[]) {
     const unique = [...new Set(slugs)];
-    const skills = await this.prisma.skill.findMany({ where: { slug: { in: unique } }, select: { id: true, slug: true } });
-    if (skills.length !== unique.length) throw new BadRequestException('Указан несуществующий навык');
+    const skills = await this.prisma.skill.findMany({
+      where: { slug: { in: unique } },
+      select: { id: true, slug: true },
+    });
+    if (skills.length !== unique.length)
+      throw new BadRequestException('Указан несуществующий навык');
     return unique.map((slug) => skills.find((s) => s.slug === slug)!.id);
   }
 
   private async uniqueSlug(title: string) {
     const base = slugify(title) || 'workshop';
     let slug = base;
-    for (let i = 2; await this.prisma.workshop.findUnique({ where: { slug }, select: { id: true } }); i++) {
+    for (
+      let i = 2;
+      await this.prisma.workshop.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+      i++
+    ) {
       slug = `${base}-${i}`;
     }
     return slug;
@@ -385,7 +486,12 @@ export class MentorService {
     for (const { skillId } of workshop.skills) {
       const progress = await tx.userSkillProgress.upsert({
         where: { userId_skillId: { userId, skillId } },
-        create: { userId, skillId, workshopsCompleted: 1, minutesTotal: workshop.durationMinutes },
+        create: {
+          userId,
+          skillId,
+          workshopsCompleted: 1,
+          minutesTotal: workshop.durationMinutes,
+        },
         update: {
           workshopsCompleted: { increment: 1 },
           minutesTotal: { increment: workshop.durationMinutes },
